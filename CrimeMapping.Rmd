@@ -1,0 +1,68 @@
+---
+title: "Web-based Data Mapping with R & Leaflet"
+author: "Tucker Doud"
+date: "Thursday, May 28, 2015"
+output: 
+  html_document: 
+    fig_width: 9
+---
+```{r echo=FALSE, results='hide'}
+# Set directory
+setwd("~/GitHub/BaltimoreCrime")
+```
+
+##Introduction
+This page is a continuation of one I wrote last year that you can find [here](http://rpubs.com/jtdoud/VanCrime). I had committed to writing a Part II where I would geocode and map crime stats from my home city of Vancouver. But in the mean time I found some open crime data in the City of Baltimore [website](https://data.baltimorecity.gov/browse) that was *already geocoded*. So for this mapping exercise I'll save myself the trouble and simply use the Baltimore data.
+
+##Data Processing
+I've done some processing of the data to clean things up and focus on only the subset that I need to do this mapping example.
+```{r message=FALSE, warning=FALSE}
+library(dplyr) # Load tools
+
+# Get the data
+data <- read.csv("./BPD_Part_1_Victim_Based_Crime_Data.csv", stringsAsFactors = F)
+
+# Fix date format
+data$CrimeDate <- as.Date(data$CrimeDate, "%m/%d/%Y")
+
+# Select only columns we need and limit to year 2014
+data <- select(data, CrimeDate, Description, Weapon, Location.1) %>%
+    filter(CrimeDate >= "2014-01-01" & CrimeDate <= "2014-12-31")
+
+# Convert the goecoded locations to useable numeric columns
+data$Lat <- as.numeric(substr(data$Location.1, start = 2, stop = 14))
+data$Lon <- as.numeric(substr(data$Location.1, start = 16, stop = 29))
+
+# Discard any observations that are not geocoded
+data <- filter(data, !is.na(Lat))
+
+# Recode blanks in weapon variable to NA
+data[data$Weapon == "", "Weapon"] <- NA
+```
+
+Now I have a smaller set of data on crimes in Baltimore limited only the the year 2014. As you can see we have a crime `Description` variable and - in some cases - the `Weapon` used in the crime.
+```{r}
+str(data)
+summary(as.factor(data$Description))
+summary(as.factor(data$Weapon))
+```
+
+There are too many data here to reasonably map with points so I will further drill down and only look at the 211 Homicides (noted above).
+
+```{r}
+data <- filter(data, Description == "HOMICIDE") # Subset for homicides only
+```
+##Interactive Web Mapping
+Now that I have my data ready, producing an interactive web map is easy using the new [Leaflet for R](http://rstudio.github.io/leaflet/) widget. This is built off the popular [Leaflet](http://leafletjs.com/) java script library for mapping.
+```{r fig.width=9}
+library(leaflet) # Load tools
+
+# Produce map
+leaflet(data) %>%
+    addProviderTiles("CartoDB.Positron") %>%
+    addCircleMarkers(lng = ~Lon, lat = ~Lat, radius = 5, fillColor = "darkred", 
+                     popup = ~Weapon, fillOpacity = 0.5, stroke = F)
+```
+
+And there it is with only 4 lines of code! Each point represents a homicide in Baltimore during the year 2014. The map is totally interactive. You can zoom or drag and the map image will adjust. Click on any point and you can see the weapon used in the crime.
+

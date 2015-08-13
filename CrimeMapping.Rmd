@@ -40,14 +40,14 @@ data <- filter(data, !is.na(Lat))
 data[data$Weapon == "", "Weapon"] <- NA
 ```
 
-Now I have a smaller set of data on crimes in Baltimore limited only the the year 2014. As you can see we have a crime `Description` variable and - in some cases - the `Weapon` used in the crime.
+Now I have a smaller set of data on crimes in Baltimore limited only to the year 2014. As you can see we have a crime `Description` variable and - in some cases - the `Weapon` used in the crime.
 ```{r}
 str(data)
 summary(as.factor(data$Description))
 summary(as.factor(data$Weapon))
 ```
 
-There are too many data here to reasonably map with points so I will further drill down and only look at the 211 Homicides (noted above).
+There are too many data here to reasonably map with points so I will further drill down and only look at the 211 homicides (noted above).
 
 ```{r}
 data <- filter(data, Description == "HOMICIDE") # Subset for homicides only
